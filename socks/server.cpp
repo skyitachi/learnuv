@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string.h>
 #include <assert.h>
+#include <stdio.h>
 
 #define MAXSIZE 4096
 #define MAXCONNECTION 128
@@ -191,7 +192,10 @@ void on_client_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t* buf) {
       Addr *addr = parseAddr(buf->base, 2);
       tunnel->addr = addr;
       printf("server addr is: %s:%d\n", addr->ip, addr->port);
-
+      const char *username = (char *)(buf->base + 8);
+      if (username) {
+        printf("username is: %s\n", username);
+      }
       uv_tcp_t *socket = (uv_tcp_t* ) malloc(sizeof(uv_tcp_t));
       uv_tcp_init(loop, socket);
       uv_connect_t* connect = (uv_connect_t* )malloc(sizeof(uv_connect_t));
@@ -252,13 +256,29 @@ void on_new_client_connection(uv_stream_t *server, int status) {
   }
 }
 
-int main() {
+void showUsage() {
+  printf("Usage: socks -p 3000\n");
+}
+
+int main(int argc, char **argv) {
+  const char *host = "127.0.0.1";
+  int port = 3000;
+  if (argc != 1 || argc != 3) {
+    showUsage();
+    exit(1);
+  }
+  for (int i = 1; i < argc; i++) {
+    if (!strcmp(argv[i], "-p")) {
+      port = atoi(argv[i + 1]);
+      break;
+    }
+  }
   loop = uv_default_loop();
   uv_tcp_t server;
   uv_tcp_init(loop, &server);
-  printf("server stream address is %p\n", &server);
   sockaddr_in addr;
-  uv_ip4_addr("127.0.0.1", 3000, &addr);
+  
+  uv_ip4_addr(host, port, &addr);
 
   uv_tcp_bind(&server, (const struct sockaddr *)&addr, 0); // bind
 
@@ -266,7 +286,7 @@ int main() {
   if (r) {
     std::cout << "listen error: " << uv_strerror(r) << std::endl;
   } else {
-    std::cout << "listen successfully" << std::endl;
+    printf("listen on %d successfully\n");
   }
 
   return uv_run(loop, UV_RUN_DEFAULT);

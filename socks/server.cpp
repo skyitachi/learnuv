@@ -26,14 +26,14 @@ typedef enum Status {
 } Status;
 
 typedef struct Tunnel {
-  uv_stream_t* client; // stream between client and proxy
-  uv_stream_t* server; // stream between server and proxy
   int offset;
   Addr* addr;
   char buf[MAXSIZE];
   char header[REQUEST_SIZE];
   char response[REQUEST_SIZE];
   Status status;
+  uv_stream_t* client; // stream between client and proxy
+  uv_stream_t* server; // stream between server and proxy
 } Tunnel;
 
 
@@ -103,7 +103,10 @@ void on_server_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t* buf) {
   // Note
   Tunnel *tunnel = (Tunnel *) stream->data;
   assert(tunnel);
-
+  if (!tunnel->client) {
+    printf("client has closed\n");
+    return;
+  }
   if (nread < 0) {
     if (nread != UV_EOF) {
       fprintf(stderr, "Error on reading relay stream: %s.\n",
@@ -139,14 +142,16 @@ void on_server_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t* buf) {
  */
 void on_server_connect(uv_connect_t *req, int status) {
   // read data from req then send to client
-  if (status < 0) {
-    fprintf(stderr, "%s\n", uv_strerror(status));
-    return;
-  }
-  printf("connect to real server correctly\n");
   Tunnel* tunnel = (Tunnel *) req->data;
   assert(tunnel);
   printf("on_server_connect: tunnel address %p\n", tunnel);
+  if (status < 0) {
+    // 连接 server 失败
+    fprintf(stderr, "%s\n", uv_strerror(status));
+    free(tunnel);
+    return;
+  }
+  printf("connect to real server correctly\n");
   tunnel->server = req->handle;
   if (tunnel->offset) {
     uv_write_t* write_req = (uv_write_t *)malloc(sizeof(uv_write_t));
@@ -172,7 +177,9 @@ void on_client_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t* buf) {
     tunnel->client = NULL;
     std::cout << "client closed" << std::endl;
     // NOTE:
-    free(tunnel);
+    if (tunnel->client) { // 防止 tunnel 被回收
+      free(tunnel);
+    }
   } else {
     printf("client_stream address %p\n", stream);
     printf("stream address %p, tunnel->client address %p\n", stream, tunnel->client);
@@ -193,19 +200,23 @@ void on_client_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t* buf) {
       tunnel->addr = addr;
       printf("server addr is: %s:%d\n", addr->ip, addr->port);
       const char *username = (char *)(buf->base + 8);
-      if (username) {
+      if (strlen(username) > 0) {
         printf("username is: %s\n", username);
       }
       uv_tcp_t *socket = (uv_tcp_t* ) malloc(sizeof(uv_tcp_t));
       uv_tcp_init(loop, socket);
       uv_connect_t* connect = (uv_connect_t* )malloc(sizeof(uv_connect_t));
-      connect->data = stream->data;
+      connect->data = (void *) tunnel;
       struct sockaddr_in dest;
       uv_ip4_addr(addr->ip, addr->port, &dest);
       uv_tcp_connect(connect, socket, (const struct sockaddr *) &dest, on_server_connect);
     } else {
       // Note: read real data
       printf("read the content: %ld\n", nread);
+      if (!tunnel) {
+        printf("tunnel is NULL\n");
+        exit(1);
+      }
       memcpy(tunnel->header, buf->base, nread);
       if (tunnel->server == NULL) {
         printf("tunnel->server doesn't exist, data size: %ld\n", nread);
@@ -263,7 +274,7 @@ void showUsage() {
 int main(int argc, char **argv) {
   const char *host = "127.0.0.1";
   int port = 3000;
-  if (argc != 1 || argc != 3) {
+  if (argc != 1 && argc != 3) {
     showUsage();
     exit(1);
   }
@@ -286,7 +297,7 @@ int main(int argc, char **argv) {
   if (r) {
     std::cout << "listen error: " << uv_strerror(r) << std::endl;
   } else {
-    printf("listen on %d successfully\n");
+    printf("listen on %d successfully\n", port);
   }
 
   return uv_run(loop, UV_RUN_DEFAULT);

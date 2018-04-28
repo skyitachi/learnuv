@@ -117,10 +117,10 @@ void on_server_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t* buf) {
     // 先关闭server
     tunnel->server = NULL;
     tunnel->status = SERVER_WRITE_END;
-    std::cout << "real server closed" << std::endl;
+    printf("real server closed\n");
     return;
   }
-  printf("server stream address: %p\n", stream);
+  // printf("server stream address: %p\n", stream);
   printf("read %ld size data from the server\n", nread);
   if (nread < 50) {
     printf("server data: %s\n", buf->base);
@@ -175,14 +175,9 @@ void on_client_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t* buf) {
     // close the connection
     uv_close((uv_handle_t *) stream, NULL);
     tunnel->client = NULL;
-    std::cout << "client closed" << std::endl;
-    // NOTE:
-    if (tunnel->client) { // 防止 tunnel 被回收
-      free(tunnel);
-    }
+    printf("client closed\n");
   } else {
-    printf("client_stream address %p\n", stream);
-    printf("stream address %p, tunnel->client address %p\n", stream, tunnel->client);
+    // printf("client_stream address %p\n", stream);
     assert(stream == tunnel->client);
 
     // socks4a client data
@@ -212,13 +207,14 @@ void on_client_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t* buf) {
       uv_tcp_connect(connect, socket, (const struct sockaddr *) &dest, on_server_connect);
     } else {
       // Note: read real data
-      printf("read the content: %ld\n", nread);
       if (!tunnel) {
         printf("tunnel is NULL\n");
         exit(1);
       }
       memcpy(tunnel->header, buf->base, nread);
+      tunnel->header[nread] = 0;
       if (tunnel->server == NULL) {
+        printf("store request to buf is %s", buf->base);
         printf("tunnel->server doesn't exist, data size: %ld\n", nread);
         if (tunnel->offset + nread > MAXSIZE) {
           printf("tunnel has not enough buffer, server connection cannot created \n");
@@ -226,13 +222,18 @@ void on_client_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t* buf) {
         }
         memcpy(tunnel->buf + tunnel->offset, buf->base, nread);
         tunnel->offset += nread;
+        tunnel->buf[tunnel->offset] = 0;
       } else {
         uv_write_t* write_req = (uv_write_t* )malloc(sizeof(uv_write_t));
         write_req->data = (void *) tunnel;
         // write data to server
         printf("write data to tunnel server, server address: %s:%d\n", tunnel->addr->ip, tunnel->addr->port);
-        printf("tunnel->server is %p\n", tunnel->server);
-        assert(0 == uv_write(write_req, tunnel->server, buf, 1, on_write_end));
+        printf("directly request is %s", buf->base);
+
+        // Note: 必须要用新的 buf
+        uv_buf_t tmpBuf = uv_buf_init(buf->base, nread);
+        // printf("tunnel->server is %p\n", tunnel->server);
+        assert(0 == uv_write(write_req, tunnel->server, &tmpBuf, 1, on_write_end));
       }
     }
   }

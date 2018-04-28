@@ -6,3 +6,5 @@
   - 简单的实现
 - [x] free not allocated data bug fix
 - [ ] 正确的响应服务端服务没起的情况
+- [x] 修复bad request 的情况
+- [ ] 大数据量的能否正确控制

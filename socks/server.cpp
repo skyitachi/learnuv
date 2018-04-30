@@ -63,7 +63,10 @@ Addr* parseAddr(const char *buf, ssize_t offset) {
 }
 
 void alloc_buffer(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf) {
-  *buf = uv_buf_init((char*) malloc(MAXSIZE), suggested_size);
+  if (suggested_size > MAXSIZE) {
+    printf("suggest size is %lu\n", suggested_size);
+  }
+  *buf = uv_buf_init((char*) malloc(suggested_size), suggested_size);
 }
 
 void show_binary(const char *s, ssize_t nread) {
@@ -206,11 +209,6 @@ void on_client_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t* buf) {
       uv_ip4_addr(addr->ip, addr->port, &dest);
       uv_tcp_connect(connect, socket, (const struct sockaddr *) &dest, on_server_connect);
     } else {
-      // Note: read real data
-      if (!tunnel) {
-        printf("tunnel is NULL\n");
-        exit(1);
-      }
       memcpy(tunnel->header, buf->base, nread);
       tunnel->header[nread] = 0;
       if (tunnel->server == NULL) {
@@ -234,6 +232,7 @@ void on_client_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t* buf) {
         uv_buf_t tmpBuf = uv_buf_init(buf->base, nread);
         // printf("tunnel->server is %p\n", tunnel->server);
         assert(0 == uv_write(write_req, tunnel->server, &tmpBuf, 1, on_write_end));
+        // assert(0 == uv_write(write_req, tunnel->server, buf, 1, on_write_end));
       }
     }
   }
@@ -296,7 +295,7 @@ int main(int argc, char **argv) {
 
   int r = uv_listen((uv_stream_t *)&server, 2, on_new_client_connection); // listen
   if (r) {
-    std::cout << "listen error: " << uv_strerror(r) << std::endl;
+    printf("listen error: %s\n", uv_strerror(r));
   } else {
     printf("listen on %d successfully\n", port);
   }

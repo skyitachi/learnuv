@@ -9,4 +9,6 @@ add_executable(learnuv ${SOURCE_FILES})
 
 add_subdirectory(socks)
 
+add_subdirectory(echo)
+
 TARGET_LINK_LIBRARIES(learnuv uv)

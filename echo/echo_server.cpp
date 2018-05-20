@@ -21,6 +21,12 @@ void on_write_end(uv_write_t* req, int status) {
 }
 
 void on_data(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {
+  if (nread < 0) {
+    // Note, Important: some clean work
+    uv_close((uv_handle_t *) stream, NULL);
+    printf("connection closed\n");
+    return;
+  }
   printf("receive data: %s", buf->base);
   uv_write_t *write_req = (uv_write_t *)malloc(sizeof(uv_write_t));
   uv_write(write_req, stream, buf, 1, on_write_end);

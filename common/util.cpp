@@ -31,5 +31,4 @@ void common_on_write_end(uv_write_t* req, int status) {
     fprintf(stderr, "on_write_end write error: %s\n", uv_strerror(status));
     return;
   }
-  printf("write successfully\n");
 }

@@ -11,4 +11,6 @@ add_subdirectory(socks)
 
 add_subdirectory(echo)
 
+add_subdirectory(fs)
+
 TARGET_LINK_LIBRARIES(learnuv uv)

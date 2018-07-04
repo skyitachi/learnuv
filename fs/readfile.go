@@ -5,7 +5,6 @@ import (
   "os"
   "time"
   "fmt"
-  "math"
   "io"
   "strconv"
 )
@@ -44,8 +43,7 @@ func main() {
   }
   fmt.Println("total file size: ", count)
 
-  diff := time.Now().UnixNano() - start.UnixNano()
-  fmt.Println("time consume: ", math.Round(float64(diff) / 1e6))
+  fmt.Println("time consumes: ", time.Now().Sub(start))
 }
 
 

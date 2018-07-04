@@ -17,7 +17,7 @@ rs.on("end", () => {
 });
 */
 
-const BUF_SIZE = 4096 * 3;
+const BUF_SIZE = 1024 * 32;
 function main() {
   const buf = Buffer.alloc(BUF_SIZE);
   try {

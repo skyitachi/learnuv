@@ -13,4 +13,6 @@ add_subdirectory(echo)
 
 add_subdirectory(fs)
 
+add_subdirectory(pingpong)
+
 TARGET_LINK_LIBRARIES(learnuv uv)

@@ -81,10 +81,13 @@ int main(int argc, char* argv[]) {
     base[i] = static_cast<char>(i % 128);
   }
   start = uv_hrtime();
+  Connection** connections = (Connection **)safe_malloc(sizeof(Connection *) * sessions);
   for(int i = 0; i < sessions; i++) {
-    Connection c(uv_default_loop(), (sockaddr *) &addr);
-    c.connect();
+    Connection* c = new Connection(uv_default_loop(), (sockaddr *) &addr);
+    connections[i] = c;
   }
-
+  for(int i = 0; i < sessions; i++) {
+    connections[i]->connect();
+  }
   return uv_run(uv_default_loop(), UV_RUN_DEFAULT);
 }

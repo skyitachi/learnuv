@@ -4,6 +4,7 @@
 #ifndef LEARNUV_UTIL_H
 #define LEARNUV_UTIL_H
 #include "uv.h"
+#include <sys/socket.h>
 #include <cstdlib>
 
 #define check_uv(status) \

@@ -12,19 +12,25 @@ uv_timer_t* timer;
 int sessions; // 总连接数
 void onConnect(uv_connect_t *req, int status);
 void onReadData(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf);
+void onShutdown(uv_shutdown_t* req, int status);
 class Connection;
 Connection** connections;
 
 class Connection {
 public:
-  Connection(uv_loop_t *loop, sockaddr* addr): loop_(loop), addr_(addr) {
+  Connection(uv_loop_t *loop, sockaddr* addr, ssize_t bytesToRead):
+      loop_(loop), addr_(addr), bytesToRead_(bytesToRead)
+  {
     client = (uv_tcp_t *)safe_malloc(sizeof(uv_tcp_t));
     bytesRead = 0;
+    connect_req = (uv_connect_t *) safe_malloc(sizeof(uv_connect_t));
     uv_tcp_init(loop, client);
   }
   ssize_t bytesRead;
+  ssize_t bytesToRead_;
   ~Connection();
   void connect();
+  void disconnect();
 
 private:
   uv_tcp_t *client;
@@ -38,10 +44,20 @@ Connection::~Connection() {
 }
 
 void Connection::connect() {
-  connect_req = (uv_connect_t *) safe_malloc(sizeof(uv_connect_t));
   check_uv(uv_tcp_connect(connect_req, client, addr_, onConnect));
   client->data = this;
   check_uv(uv_read_start((uv_stream_t *) client, common_alloc_buffer, onReadData));
+}
+
+void Connection::disconnect() {
+  uv_shutdown_t *shutdown_req = (uv_shutdown_t *)safe_malloc(sizeof(uv_shutdown_t));
+  check_uv(uv_shutdown(shutdown_req, (uv_stream_t*) client,  onShutdown));
+}
+
+void onShutdown(uv_shutdown_t *req, int status) {
+  if (status < 0) {
+    return log_error("shutdown error: ", status);
+  }
 }
 
 void onConnect(uv_connect_t *req, int status) {
@@ -51,7 +67,6 @@ void onConnect(uv_connect_t *req, int status) {
     fprintf(stderr, "connection error: %s\n", uv_strerror(status));
     return;
   }
-  printf("in the write\n");
   uv_stream_t *client = req->handle;
   uv_write_t* write_req = (uv_write_t *) malloc(sizeof(uv_write_t));
   check_uv(uv_write(write_req, client, &clientBuf, 1, common_on_write_end));
@@ -59,21 +74,25 @@ void onConnect(uv_connect_t *req, int status) {
 
 void onReadData(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf) {
   if (nread < 0) {
-    printf("in the read < 0 \n");
     uv_close((uv_handle_t *) stream, NULL);
     return;
+  } else if (nread == 0) {
+    printf("peer closed\n");
+    return;
   }
-  printf("in the read\n");
   Connection *boundConnection = (Connection *) stream->data;
   boundConnection->bytesRead += nread;
-  counter -= 1;
+  boundConnection->bytesToRead_ -= nread;
+  if (!boundConnection->bytesToRead_) {
+    counter -= 1;
+  }
   if (!counter) {
     uint64_t now = uv_hrtime();
     ssize_t totalBytes = 0;
     for(int i = 0; i < sessions; i++) {
       totalBytes += connections[i]->bytesRead;
     }
-    printf("total read size is %zu, rate is %f MB/s\n", totalBytes, (totalBytes * 1.0) / (now - start) * 1e9 / (1024 * 1024));
+    printf("total read size is %zu bytes, rate is %f MB/s\n", totalBytes, (totalBytes * 1.0) / (now - start) * 1e9 / (1024 * 1024));
   }
 }
 
@@ -81,12 +100,16 @@ void onTimeout(uv_timer_t* handle) {
   uint64_t now = uv_hrtime();
   if (counter == 0) {
     printf("all data have sent, leave the loop\n");
+    for(int i = 0; i < sessions; i++) {
+      connections[i]->disconnect();
+    }
     // uv_loop_close(uv_default_loop());
     return;
   }
   ssize_t totalBytes = 0;
   for(int i = 0; i < sessions; i++) {
     totalBytes += connections[i]->bytesRead;
+    connections[i]->disconnect();
   }
   printf("total read size is %zu, rate is %f MB/s\n", totalBytes, (totalBytes * 1.0) / (now - start) * 1e9 / (1024 * 1024));
 }
@@ -117,9 +140,9 @@ int main(int argc, char* argv[]) {
   start = uv_hrtime();
   connections = (Connection **)safe_malloc(sizeof(Connection *) * sessions);
 
-//  check_uv(uv_timer_start(timer, onTimeout, timeout, 0));
+  check_uv(uv_timer_start(timer, onTimeout, timeout, 0));
   for(int i = 0; i < sessions; i++) {
-    Connection* c = new Connection(uv_default_loop(), (sockaddr *) &addr);
+    Connection* c = new Connection(uv_default_loop(), (sockaddr *) &addr, block_size);
     connections[i] = c;
   }
   for(int i = 0; i < sessions; i++) {

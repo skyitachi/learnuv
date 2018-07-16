@@ -42,6 +42,7 @@ func connect(conn net.Conn) {
       log.Println("read count is: 0 from ", conn.RemoteAddr())
       break
     }
+    conn.Write(buf)
   }
 }
 

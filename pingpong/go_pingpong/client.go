@@ -8,11 +8,12 @@ import (
   "sync"
   "net"
   "io"
-  "io/ioutil"
   "bytes"
   "time"
 )
 var bufs []byte
+
+const BUF_SIZE = 1 << 16
 
 func main() {
   var totalWrites int64 = 0
@@ -57,18 +58,19 @@ func main() {
         totalWrites += wc
       }()
       go func() {
+        var rbuf =  make([]byte, BUF_SIZE)
         for {
-          rbuf, err := ioutil.ReadAll(conn)
+          rc, err := conn.Read(rbuf)
           if err != nil {
-            log.Println("connection read error ", err)
+            // 服务端不会主动关闭连接
             break
           }
-          wc, err := io.Copy(conn, bytes.NewReader(rbuf))
+          wc, err := conn.Write(rbuf[:rc])
           if err != nil {
             log.Println("connection write error ", err)
             break
           }
-          totalWrites += wc
+          totalWrites += int64(wc)
         }
       }()
       t := time.NewTimer(time.Duration(timeout) * time.Second)

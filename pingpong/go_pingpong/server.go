@@ -15,7 +15,7 @@ func accept(server net.Listener) {
     for {
       conn, err := server.Accept()
       if err != nil {
-        fmt.Fprint(os.Stderr, err.Error())
+        log.Println(err.Error())
       } else {
         go connect(conn)
       }
@@ -42,7 +42,14 @@ func connect(conn net.Conn) {
       log.Println("read count is: 0 from ", conn.RemoteAddr())
       break
     }
-    conn.Write(buf)
+    c2, err := conn.Write(buf[:c])
+    if err != nil {
+      log.Println("Connection Write Error: ", err)
+      continue
+    }
+    if c != c2 {
+      log.Println("Read and Write doesn't equal")
+    }
   }
 }
 

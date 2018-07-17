@@ -16,14 +16,13 @@ void on_read_client(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf) {
     uv_close((uv_handle_t *) client, NULL);
     return;
   } else if (nread == 0) {
-    printf("peer stop write\n");
+//    printf("peer stop write\n");
     return;
   }
-  printf("read %zu size data\n", nread);
   // Note: send the pong
   uv_write_t* write_req = (uv_write_t* ) safe_malloc(sizeof(uv_write_t));
   uv_buf_t write_buf = uv_buf_init(buf->base, nread);
-  uv_write(write_req, client, &write_buf, 1, common_on_write_end);
+  uv_write(write_req, client, &write_buf, 1, on_write_end_noop);
 }
 
 void on_new_connection(uv_stream_t *server, int status) {

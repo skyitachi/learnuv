@@ -32,3 +32,7 @@ void common_on_write_end(uv_write_t* req, int status) {
     return;
   }
 }
+
+void on_write_end_noop(uv_write_t* req, int status) {
+  return;
+}

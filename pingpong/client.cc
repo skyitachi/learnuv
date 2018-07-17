@@ -77,23 +77,13 @@ void onReadData(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf) {
     uv_close((uv_handle_t *) stream, NULL);
     return;
   } else if (nread == 0) {
-    printf("peer closed\n");
     return;
   }
   Connection *boundConnection = (Connection *) stream->data;
   boundConnection->bytesRead += nread;
-  boundConnection->bytesToRead_ -= nread;
-  if (!boundConnection->bytesToRead_) {
-    counter -= 1;
-  }
-  if (!counter) {
-    uint64_t now = uv_hrtime();
-    ssize_t totalBytes = 0;
-    for(int i = 0; i < sessions; i++) {
-      totalBytes += connections[i]->bytesRead;
-    }
-    printf("total read size is %zu bytes, rate is %f MB/s\n", totalBytes, (totalBytes * 1.0) / (now - start) * 1e9 / (1024 * 1024));
-  }
+  // Note: write back message
+  uv_write_t *write_req = (uv_write_t *) malloc(sizeof(uv_write_t));
+  check_uv(uv_write(write_req, stream, buf, 1, common_on_write_end));
 }
 
 void onTimeout(uv_timer_t* handle) {
@@ -125,7 +115,9 @@ int main(int argc, char* argv[]) {
   sessions = atoi(argv[4]);
   counter = sessions;
   int timeout = atoi(argv[5]);
-
+  
+  printf("sessions are %d, block_size are %d\n", sessions, block_size);
+  
   // Note: init timer
   timer = (uv_timer_t *)malloc(sizeof(uv_timer_t));
   check_uv(uv_timer_init(uv_default_loop(), timer));
@@ -134,6 +126,7 @@ int main(int argc, char* argv[]) {
   uv_ip4_addr(host, port, &addr);
   char *base = (char *)safe_malloc(block_size);
   clientBuf = uv_buf_init(base, block_size);
+  
   for(int i = 0; i < block_size; i++) {
     base[i] = static_cast<char>(i % 128);
   }

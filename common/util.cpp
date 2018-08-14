@@ -13,7 +13,7 @@ void *safe_malloc(size_t size) {
 }
 
 void log_error(const char* prefix, int status) {
-  fprintf(stderr, "%s %s", prefix, uv_strerror(status));
+  fprintf(stderr, "%s %s\n", prefix, uv_strerror(status));
 }
 
 void common_alloc_buffer(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf) {

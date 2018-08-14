@@ -15,4 +15,6 @@ add_subdirectory(fs)
 
 add_subdirectory(pingpong)
 
+add_subdirectory(simple)
+
 TARGET_LINK_LIBRARIES(learnuv uv)

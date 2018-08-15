@@ -7,6 +7,7 @@
 #include <sys/socket.h>
 #include <string.h>
 #include <cstdlib>
+#include <assert.h>
 
 #define check_uv(status) \
   do { \

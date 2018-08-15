@@ -3,8 +3,9 @@
 //
 #ifndef LEARNUV_UTIL_H
 #define LEARNUV_UTIL_H
-#include "uv.h"
+#include <uv.h>
 #include <sys/socket.h>
+#include <string.h>
 #include <cstdlib>
 
 #define check_uv(status) \

@@ -40,16 +40,20 @@ void on_new_connection(uv_stream_t *server, int status) {
   uv_tcp_t *client = (uv_tcp_t *)safe_malloc(sizeof(uv_tcp_t));
   uv_tcp_init(uv_default_loop(), client);
   check_uv(uv_accept(server, (uv_stream_t *)client));
+  printf("connection fd %d\n", client->accepted_fd);
 
-  sockaddr_storage storage;
-  sockaddr *const addr = reinterpret_cast<sockaddr*>(&storage);
+  struct sockaddr_storage storage;
+  struct sockaddr *const addr = reinterpret_cast<struct sockaddr*>(&storage);
   int namelen;
   check_uv(uv_tcp_getpeername(client, addr, &namelen));
 
   char remote_address[512];
+  printf("ss_family: %d\n", storage.ss_family);
   if (addr->sa_family == AF_INET) {
+    const struct sockaddr_in* a4 = (const struct sockaddr_in *)addr;
     check_uv(uv_ip4_name((const struct sockaddr_in *) addr, remote_address, sizeof(remote_address)));
-    printf("remote address is: %s\n", remote_address);
+    
+    printf("remote address is: %s:%d\n", remote_address, ntohs(a4->sin_port));
 
   } else if (addr->sa_family == AF_INET6) {
     check_uv(uv_ip6_name((const struct sockaddr_in6 *) addr, remote_address, sizeof(remote_address)));

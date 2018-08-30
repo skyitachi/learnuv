@@ -2,6 +2,7 @@
 // Created by skyitachi on 2018/8/14.
 //
 #include "util.h"
+#include <thread>
 
 #define BUFSIZE 4096
 
@@ -87,6 +88,7 @@ int main(int argc, char **argv) {
     printf("Usage: chargen <port>\n");
     exit(1);
   }
+  std::thread::id this_id = std::this_thread::get_id();
   int port = atoi(argv[1]);
   struct sockaddr_in addr;
   uv_ip4_addr("0.0.0.0", port, &addr);

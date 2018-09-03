@@ -1,7 +1,7 @@
 //
 // Created by skyitachi on 2018/8/30.
 //
-
+// Note: on_write_end里再去 uv_fs_read 即可
 #include "util.h"
 #define FILE_BUF 8192
 uv_buf_t buffer;
@@ -9,30 +9,55 @@ uv_fs_t open_req;
 uv_fs_t read_req;
 char buf[FILE_BUF];
 
+void on_read(uv_fs_t *req);
+
+void on_shutdown(uv_shutdown_t* req, int status) {
+  if (status < 0) {
+    log_error("shutdown error: ", status);
+    return;
+  }
+  printf("shutdown right\n");
+}
+
+void on_write_end(uv_write_t *req, int status) {
+  if (status < 0) {
+    fprintf(stderr, "on_write_end write error: %s\n", uv_strerror(status));
+    return;
+  }
+  uv_fs_read(uv_default_loop(), &read_req, open_req.result, &buffer, 1, -1, on_read);
+}
+
 void on_read(uv_fs_t *req) {
   if (req->result < 0) {
     log_error("read file error", req->result);
     return;
   } if (req->result == 0) {
     printf("read file end\n");
-//    uv_fs_close(uv_default_loop(), req, req->result, NULL);
-    return;
+    uv_fs_t* close_req = (uv_fs_t *)safe_malloc(sizeof(uv_fs_t));
+    uv_fs_close(uv_default_loop(), close_req, open_req.result, NULL);
+    uv_fs_req_cleanup(close_req);
+    uv_stream_t *server = (uv_stream_t *)req->data;
+    assert(server);
+    uv_shutdown_t* shutdown = (uv_shutdown_t* )safe_malloc(sizeof(uv_shutdown_t));
+    uv_shutdown(shutdown, server, on_shutdown);
+    printf("shutdown\n");
   } else {
     uv_stream_t *server = (uv_stream_t *)req->data;
     assert(server);
+
     uv_write_t* wReq = (uv_write_t *) safe_malloc(sizeof(uv_write_t));
     // Note: 不能直接使用 buffer
     char tBuf[FILE_BUF];
-    uv_buf_t tcpBuf = uv_buf_init(tBuf, FILE_BUF);
-    uv_write(wReq, server, &tcpBuf, 1, common_on_write_end);
-
-    uv_fs_read(uv_default_loop(), &read_req, open_req.result, &buffer, 1, -1, on_read);
+    memcpy(tBuf, buffer.base, req->result);
+    tBuf[req->result] = 0;
+    uv_buf_t tcpBuf = uv_buf_init(tBuf, req->result + 1);
+    uv_write(wReq, server, &tcpBuf, 1, on_write_end);
   }
 }
 
 void on_file_open(uv_fs_t* req) {
   if (req->result >= 0) {
-    printf("file descriptor is %d\n", req->result);
+    printf("file descriptor is %zd\n", req->result);
     read_req.data = req->data;
     uv_fs_read(uv_default_loop(), &read_req, req->result, &buffer, 1, -1, on_read);
     return;

@@ -26,7 +26,7 @@ void common_alloc_buffer(uv_handle_t *handle, size_t suggested_size, uv_buf_t *b
   buf->len = suggested_size;
 }
 
-void common_on_write_end(uv_write_t* req, int status) {
+void common_on_write_end(uv_write_t *req, int status) {
   if (status < 0) {
     fprintf(stderr, "on_write_end write error: %s\n", uv_strerror(status));
     return;

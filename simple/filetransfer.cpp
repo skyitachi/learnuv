@@ -27,7 +27,7 @@ void on_shutdown(uv_shutdown_t* req, int status) {
   context* ctx = (context *)req->data;
   uv_fs_t* close_req = (uv_fs_t *)safe_malloc(sizeof(uv_fs_t));
   close_req->data = ctx;
-  uv_fs_close(uv_default_loop(), close_req, ctx->open_req->file, on_fs_close);
+  uv_fs_close(uv_default_loop(), close_req, ctx->open_req->result, on_fs_close);
   printf("shutdown right\n");
 }
 
@@ -45,12 +45,11 @@ void on_tcp_close(uv_handle_t *handle) {
   context* ctx = (context *)handle->data;
   uv_fs_req_cleanup(ctx->open_req);
   uv_fs_req_cleanup(ctx->read_req);
-  // Note: 手动close fd，uv_fs_close doesn't work
-  close(ctx->open_req->result);
   free(ctx);
   printf("clean done\n");
 
 }
+
 void on_fs_close(uv_fs_t *req) {
   context* ctx = (context *)req->data;
   assert(ctx);
@@ -63,7 +62,6 @@ void on_read(uv_fs_t *req) {
   assert(ctx->read_req == req);
   if (req->result < 0) {
     log_error("read file error", req->result);
-    // TODO: cleanup
     uv_fs_req_cleanup(ctx->read_req);
     uv_fs_req_cleanup(ctx->open_req);
     return;

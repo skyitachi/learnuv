@@ -3,6 +3,7 @@
 //
 // Note: on_write_end里再去 uv_fs_read 即可
 #include "util.h"
+#include <unistd.h>
 #define FILE_BUF 8192
 uv_buf_t buffer;
 char buf[FILE_BUF];
@@ -15,6 +16,8 @@ typedef struct  context {
 
 void on_read(uv_fs_t *req);
 void on_fs_close(uv_fs_t *req);
+
+void on_tcp_close(uv_handle_t* handle);
 
 void on_shutdown(uv_shutdown_t* req, int status) {
   if (status < 0) {
@@ -38,15 +41,21 @@ void on_write_end(uv_write_t *req, int status) {
   uv_fs_read(uv_default_loop(), ctx->read_req, ctx->open_req->result, &buffer, 1, -1, on_read);
 }
 
+void on_tcp_close(uv_handle_t *handle) {
+  context* ctx = (context *)handle->data;
+  uv_fs_req_cleanup(ctx->open_req);
+  uv_fs_req_cleanup(ctx->read_req);
+  // Note: 手动close fd，uv_fs_close doesn't work
+  close(ctx->open_req->result);
+  free(ctx);
+  printf("clean done\n");
+
+}
 void on_fs_close(uv_fs_t *req) {
   context* ctx = (context *)req->data;
   assert(ctx);
-  printf("close file %zd\n", ctx->open_req->result);
-  uv_fs_req_cleanup(ctx->open_req);
-  uv_fs_req_cleanup(ctx->read_req);
-  uv_fs_req_cleanup(req);
-  free(ctx);
-  printf("clean done\n");
+  printf("file %zd closed\n", ctx->open_req->result);
+  uv_close((uv_handle_t*) ctx->server, on_tcp_close);
 }
 
 void on_read(uv_fs_t *req) {
@@ -114,6 +123,7 @@ void on_new_connection(uv_stream_t *server, int status) {
   uv_fs_t *open_req = (uv_fs_t *)safe_malloc(sizeof(uv_fs_t));
   // 上下文传递
   context *ctx = (context *)safe_malloc(sizeof(context));
+  client->data = ctx;
   ctx->open_req = open_req;
   ctx->server = client;
   open_req->data = ctx;

@@ -14,7 +14,7 @@ using namespace std::placeholders;
 class Connection {
 public:
   Connection(int id, uv_tcp_t* handle): id_(id),  handle_(handle) {}
-  void setMessageCallback(MessageCallback cb) {
+  void setMessageCallback() {
     codec_.setMessageCallBack(std::bind(&Connection::onMessage, this, _1));
   }
   void onMessage(const char *buf) {

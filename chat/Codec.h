@@ -28,6 +28,7 @@ public:
     cb_ = cb;
   }
 private:
+  void parse(ssize_t nread, const uv_buf_t*, ssize_t);
   char buf[CODEC_BUF];
   int offset;
   Status status;

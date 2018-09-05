@@ -2,6 +2,10 @@ include_directories(../common)
 set(COMMON_SRC ../common/util.cpp)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
-add_executable(chat ${COMMON_SRC} chat.cpp connection.cpp Codec.cpp)
+add_executable(chat_server ${COMMON_SRC} ChatServer.cpp connection.cpp Codec.cpp)
 
-target_link_libraries(chat uv)
+target_link_libraries(chat_server uv)
+
+add_executable(chat_client ${COMMON_SRC} ChatClient.cpp)
+
+target_link_libraries(chat_client uv)

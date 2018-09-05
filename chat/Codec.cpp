@@ -2,25 +2,84 @@
 // Created by skyitachi on 2018/9/4.
 //
 
+#include <util.h>
 #include "Codec.h"
 
+void Codec::parse(ssize_t nread, const uv_buf_t *b, ssize_t msg_offset) {
+  ssize_t nleft = nread;
+  while(nleft > 0) {
+    if (nleft > 4) {
+      length = (b->base[0 + msg_offset] << 24) + (b->base[1+msg_offset] << 16) + (b->base[2 + msg_offset] << 8) + b->base[3+msg_offset];
+    } else {
+      status = HEAD;
+      offset = nleft;
+      memcpy(buf, b->base + msg_offset, nleft);
+      break;
+    }
+    if (nleft >= length + 4) {
+      status = BODY;
+      memcpy(buf, b->base + msg_offset + 4, length);
+      buf[length] = 0;
+      cb_(buf);
+      nleft -= length + 4;
+      msg_offset += length + 4;
+    } else {
+      memcpy(buf, b->base + msg_offset, nleft - 4);
+      status = BODY;
+      offset = msg_offset + nleft - 4;
+      break;
+    }
+  }
+}
+
 void Codec::handleRead(ssize_t nread, const uv_buf_t* b) {
-  printf("in the handleRead\n");
+  if (nread < 0) {
+    log_error("handleRead error: ", nread);
+    return;
+  }
+  printf("in the handleRead, read size: %zd\n", nread);
+  if (nread == 0) {
+    // TODO: connection callback
+    printf("client closed\n");
+    return;
+  }
   if (status == INITIAL) {
-    if (nread < 4) {
+    if (nread <= 4) {
       status = HEAD;
       offset += nread;
       memcpy(buf, b->base, nread);
-    } else if (nread >= 4) {
-      status = BODY;
-      length = (b->base[0] << 24) + (b->base[1] << 16) + (b->base[2] << 8) + b->base[3];
-      if (length + 4 == nread) { //
-        if (length > CODEC_BUF) {
-          fprintf(stderr, "message length > CODEC_BUF");
-          return;
+    } else if (nread > 4) {
+      parse(nread, b, 0);
+    } else if (status == HEAD) {
+      if (nread + offset < 4) {
+        memcpy(buf + offset, b->base, nread);
+        offset += nread;
+      } else {
+        // 计算长度
+        memcpy(buf + offset, b->base, 4 - offset);
+        length = (buf[0] << 24) + (buf[1] << 16) + (buf[2] << 8) + buf[3];
+        status = BODY;
+        ssize_t nleft = nread - (4 - offset);
+        offset = 0;
+        if (nleft < length) {
+          offset = nleft;
+          memcpy(buf, b->base + (4 - offset), nleft);
+        } else {
+          memcpy(buf, b->base + (4 - offset), length);
+          buf[length] = 0;
+          cb_(buf);
+          parse(nleft - length, b, 4 - offset + length);
         }
-        memcpy(buf, b->base, nread);
+      }
+    } else if (status == BODY) {
+      if (nread + offset < length) {
+        memcpy(buf + offset, b->base, nread);
+        offset += nread;
+      } else {
+        memcpy(buf+offset, b->base, length - offset);
+        buf[length] = 0;
         cb_(buf);
+        parse(nread - (length - offset), b, length - offset);
       }
     }
   }

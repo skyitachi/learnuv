@@ -22,6 +22,7 @@ void on_connection(uv_stream_t* server, int status) {
   uv_tcp_t *client = (uv_tcp_t *)safe_malloc(sizeof(uv_tcp_t));
   uv_tcp_init(uv_default_loop(), client);
   Connection* conn = new Connection(connections++, client);
+  conn->setMessageCallback();
   check_uv(uv_accept(server, (uv_stream_t *) client));
   client->data = conn;
   uv_read_start((uv_stream_t *)client, common_alloc_buffer, on_read);

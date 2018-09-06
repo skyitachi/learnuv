@@ -10,6 +10,9 @@ void Codec::parse(ssize_t nread, const uv_buf_t *b, ssize_t msg_offset) {
   while(nleft > 0) {
     if (nleft > 4) {
       length = (b->base[0 + msg_offset] << 24) + (b->base[1+msg_offset] << 16) + (b->base[2 + msg_offset] << 8) + b->base[3+msg_offset];
+      printf("parsed length: %d\n", length);
+      status = BODY;
+      offset = 0;
     } else {
       status = HEAD;
       offset = nleft;
@@ -24,9 +27,9 @@ void Codec::parse(ssize_t nread, const uv_buf_t *b, ssize_t msg_offset) {
       nleft -= length + 4;
       msg_offset += length + 4;
     } else {
-      memcpy(buf, b->base + msg_offset, nleft - 4);
+      memcpy(buf, b->base + msg_offset + 4, nleft - 4);
       status = BODY;
-      offset = msg_offset + nleft - 4;
+      offset = nleft - 4;
       break;
     }
   }
@@ -37,7 +40,7 @@ void Codec::handleRead(ssize_t nread, const uv_buf_t* b) {
     log_error("handleRead error: ", nread);
     return;
   }
-  printf("in the handleRead, read size: %zd\n", nread);
+  printf("in the handleRead, read size: %zd, offset = %d, status=%d\n", nread, offset, status);
   if (nread == 0) {
     // TODO: connection callback
     printf("client closed\n");
@@ -50,37 +53,38 @@ void Codec::handleRead(ssize_t nread, const uv_buf_t* b) {
       memcpy(buf, b->base, nread);
     } else if (nread > 4) {
       parse(nread, b, 0);
-    } else if (status == HEAD) {
-      if (nread + offset < 4) {
-        memcpy(buf + offset, b->base, nread);
-        offset += nread;
+    }
+  } else if (status == HEAD) {
+    if (nread + offset < 4) {
+      memcpy(buf + offset, b->base, nread);
+      offset += nread;
+    } else {
+      // 计算长度
+      memcpy(buf + offset, b->base, 4 - offset);
+      length = (buf[0] << 24) + (buf[1] << 16) + (buf[2] << 8) + buf[3];
+      printf("handleRead parsed length: %d\n", length);
+      status = BODY;
+      ssize_t nleft = nread - (4 - offset);
+      if (nleft < length) {
+        memcpy(buf, b->base + (4 - offset), nleft);
+        offset = nleft;
       } else {
-        // 计算长度
-        memcpy(buf + offset, b->base, 4 - offset);
-        length = (buf[0] << 24) + (buf[1] << 16) + (buf[2] << 8) + buf[3];
-        status = BODY;
-        ssize_t nleft = nread - (4 - offset);
-        offset = 0;
-        if (nleft < length) {
-          offset = nleft;
-          memcpy(buf, b->base + (4 - offset), nleft);
-        } else {
-          memcpy(buf, b->base + (4 - offset), length);
-          buf[length] = 0;
-          cb_(buf);
-          parse(nleft - length, b, 4 - offset + length);
-        }
-      }
-    } else if (status == BODY) {
-      if (nread + offset < length) {
-        memcpy(buf + offset, b->base, nread);
-        offset += nread;
-      } else {
-        memcpy(buf+offset, b->base, length - offset);
+        memcpy(buf, b->base + (4 - offset), length);
         buf[length] = 0;
         cb_(buf);
-        parse(nread - (length - offset), b, length - offset);
+        offset = 0;
+        parse(nleft - length, b, 4 - offset + length);
       }
+    }
+  } else if (status == BODY) {
+    if (nread + offset < length) {
+      memcpy(buf + offset, b->base, nread);
+      offset += nread;
+    } else {
+      memcpy(buf+offset, b->base, length - offset);
+      buf[length] = 0;
+      cb_(buf);
+      parse(nread - (length - offset), b, length - offset);
     }
   }
 }

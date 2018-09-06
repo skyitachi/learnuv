@@ -15,13 +15,40 @@ void writeMessage(const char *msg, uv_stream_t* stream) {
   uv_write(&req, stream, &ub, 1, common_on_write_end);
 }
 
+const char* encode(const char *msg) {
+  int len = strlen(msg);
+  char *encodeBuf = (char *)safe_malloc(len +  + 1);
+  uint32_t nlen = htonl(strlen(msg));
+  memcpy(encodeBuf, (char *)&nlen, 4);
+  memcpy(encodeBuf + 4, msg, strlen(msg));
+  encodeBuf[len + 4] = 0;
+  return encodeBuf;
+}
+
+void sendRawContent(const char *buf, ssize_t len, uv_stream_t* stream) {
+  uv_write_t req;
+  uv_buf_t ub = uv_buf_init(sendBuf, len);
+  memcpy(sendBuf, buf, len);
+  uv_write(&req, stream, &ub, 1, common_on_write_end);
+}
+
+// send message by one byte
+void test(const char *msg, uv_stream_t * stream) {
+  const char *buf = encode(msg);
+  int contentLen = strlen(buf);
+  for(int i = 0; i < contentLen; i++) {
+    sendRawContent(buf + i, 1, stream);
+  }
+}
+
 void on_connected(uv_connect_t* req, int status) {
   if (status < 0) {
     log_error("connect error: ", status);
     return;
   }
   printf("connected to server\n");
-  writeMessage("hello world", req->handle);
+  test("hello world", req->handle);
+//  writeMessage("hello world", req->handle);
 }
 
 int main() {

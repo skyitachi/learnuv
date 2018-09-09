@@ -14,27 +14,18 @@
 class Codec{
 public:
   const int kHeaderLen = 4;
-  enum Status {
-    INITIAL,
-    HEAD,
-    BODY
-  };
+  const int kMaxMessageSize = 4096;
   Codec() {
-    offset = 0;
-    status = INITIAL;
-    length = 0;
+    buffer = new Buffer(8192);
   }
-  void handleRead(ssize_t nread, const uv_buf_t* b);
-  void setMessageCallBack(MessageCallback cb) {
+  void setMessageCallback(MessageCallback cb) {
     cb_ = cb;
   }
-  void onMessage(const Buffer* buffer);
+  void onMessage(Buffer* buffer);
+  int encode(Buffer* buffer, const char *msg);
+  void on_uv_read(const size_t nread, const uv_buf_t* buf);
+  Buffer* buffer;
 private:
-  void parse(ssize_t nread, const uv_buf_t*, ssize_t);
-  char buf[CODEC_BUF];
-  int offset;
-  Status status;
-  int length;
   MessageCallback cb_;
 };
 

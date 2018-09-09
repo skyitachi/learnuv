@@ -42,7 +42,7 @@ void on_connect(uv_connect_t* req, int status) {
   printf("connect successfully\n");
   // Note: write stdout
   pipe_stdout = (uv_pipe_t *) safe_malloc(sizeof(uv_pipe_t));
-  check_uv(uv_pipe_init(loop, pipe_stdout, 1));
+  check_uv(uv_pipe_init(loop, pipe_stdout, 0));
   check_uv(uv_pipe_open(pipe_stdout, 1));
   req->handle->data = pipe_stdout;
 

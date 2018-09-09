@@ -3,8 +3,14 @@
 //
 
 #include "util.h"
-char sendBuf[1024];
+#include "Codec.h"
+#include "buffer/Buffer.h"
 
+Codec codec;
+Buffer buffer;
+uv_pipe_t* stdinPipe;
+
+char sendBuf[1024];
 int seq = 0;
 typedef struct Stat {
   int done;
@@ -12,16 +18,6 @@ typedef struct Stat {
 } Stat;
 
 static void on_shutdown(uv_shutdown_t*, int status);
-
-void writeMessage(const char *msg, uv_stream_t* stream) {
-  uint32_t len = htonl(strlen(msg));
-  uv_buf_t ub = uv_buf_init(sendBuf, strlen(msg) + 4);
-  memcpy(sendBuf, (char* )&len, 4);
-  memcpy(sendBuf + 4, msg, strlen(msg));
-  printf("length is %zd\n", strlen(msg));
-  uv_write_t req;
-  uv_write(&req, stream, &ub, 1, common_on_write_end);
-}
 
 static void on_write_end(uv_write_t* req, int status) {
   if (status < 0) {
@@ -38,17 +34,6 @@ static void on_write_end(uv_write_t* req, int status) {
   }
 }
 
-const char* encode(const char *msg) {
-  int len = strlen(msg);
-  printf("message length: %d\n", len);
-  char *encodeBuf = (char *)safe_malloc(len + 4 + 1);
-  uint32_t nlen = htonl(len);
-  memcpy(encodeBuf, (char *)&nlen, 4);
-  memcpy(encodeBuf + 4, msg, len);
-  encodeBuf[len + 4] = 0;
-  return encodeBuf;
-}
-
 void sendRawContent(const char *buf, ssize_t len, uv_stream_t* stream, int done) {
   // TODO: uv_write_t req; 两者有何区别
   uv_write_t* req = (uv_write_t *)safe_malloc(sizeof(uv_write_t));
@@ -63,15 +48,16 @@ void sendRawContent(const char *buf, ssize_t len, uv_stream_t* stream, int done)
 
 // send message by one byte
 void test(const char *msg, uv_stream_t * stream) {
-  const char *buf = encode(msg);
   int contentLen = strlen(msg) + 4;
   printf("contentLen %d\n", contentLen);
+  codec.encode(&buffer, msg);
+
   int step = 2, i = 0;
   for(i = 0; i < contentLen; i += step) {
     if (i + step > contentLen) {
-      sendRawContent(buf + i, contentLen - i, stream, 1);
+      sendRawContent(buffer.peek() + i, contentLen - i, stream, 1);
     } else {
-      sendRawContent(buf + i, step, stream, 0);
+      sendRawContent(buffer.peek() + i, step, stream, 0);
     }
   }
 }
@@ -88,13 +74,51 @@ static void on_close(uv_handle_t* handle) {
   printf("in the close\n");
 }
 
+static void on_read_stdin(uv_stream_t *stream, ssize_t nread, const uv_buf_t* buf) {
+  if (nread < 0) {
+    if (nread == UV_EOF) {
+      printf("stdin_closed\n");
+      return;
+    }
+    log_error("read error: ", nread);
+  } else if (nread == 0) {
+
+  }
+  uv_stream_t* tcpClient = (uv_stream_t *) stream->data;
+  codec.encode(&buffer, buf->base);
+  sendRawContent(buffer.peek(), sizeof(uint32_t) + nread, tcpClient, 1);
+}
+
+static void on_read_tcp(uv_stream_t *stream, ssize_t nread, const uv_buf_t* buf) {
+  printf("in the read_tcp\n");
+  if (nread < 0) {
+    if (nread == UV_EOF) {
+      uv_close((uv_handle_t *)stdinPipe, NULL);
+      return;
+    }
+    log_error("read_tcp error", nread);
+    return;
+  } else if (nread == 0) {
+    return;
+  }
+  printf("receive message from others: %s", buf->base);
+}
+
 void on_connected(uv_connect_t* req, int status) {
   if (status < 0) {
     log_error("connect error: ", status);
     return;
   }
   printf("connected to server\n");
-  test("hello world", req->handle);
+  stdinPipe = (uv_pipe_t *)safe_malloc(sizeof(uv_pipe_t));
+  uv_pipe_init(uv_default_loop(), stdinPipe, 0);
+  check_uv(uv_pipe_open(stdinPipe, 0));
+
+  stdinPipe->data = req->handle;
+  check_uv(uv_read_start((uv_stream_t *)stdinPipe, common_alloc_buffer, on_read_stdin));
+  printf("after uv_read_start\n");
+
+  check_uv(uv_read_start(req->handle, common_alloc_buffer, on_read_tcp));
 }
 
 int main() {

@@ -56,7 +56,7 @@ public:
   }
   
   std::string retrieveAsString(size_t len) {
-    assert(len < readableBytes());
+    assert(len <= readableBytes());
     std::string ret(peek(), len);
     retrieve(len);
     return ret;
@@ -76,7 +76,17 @@ public:
     assert(writeableBytes() >= len);
   }
   
-  void readInt32();
+  uint32_t readUInt32();
+  uint32_t peekUInt32();
+  void retrieveUInt32() {
+    retrieve(sizeof(uint32_t));
+  }
+
+  void writeUInt32(uint32_t hn) {
+    uint32_t nn = htonl(hn);
+    append((const char *)&nn, sizeof(uint32_t));
+  }
+
 private:
   char *begin() {
     return &*buffer_.begin();

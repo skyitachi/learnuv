@@ -8,19 +8,24 @@
 #include <functional>
 #include <uv.h>
 #include "Codec.h"
+#include "buffer/Buffer.h"
 
 using namespace std::placeholders;
 
 class Connection {
 public:
-  Connection(int id, uv_tcp_t* handle): id_(id),  handle_(handle) {}
+  Connection(int id, uv_tcp_t* handle): id_(id),  handle_(handle) {
+    buffer = new Buffer();
+  }
   void setMessageCallback() {
     codec_.setMessageCallBack(std::bind(&Connection::onMessage, this, _1));
   }
   void onMessage(const char *buf) {
     printf("conn.id %d receive message: %s\n", id_, buf);
   }
+  void on_uv_read(const size_t nread, const uv_buf_t* buf);
   Codec codec_;
+  Buffer* buffer;
 
   ~Connection(){
     printf("in the connection destructor\n");

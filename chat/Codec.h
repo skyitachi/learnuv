@@ -8,11 +8,12 @@
 #define CODEC_BUF 8192
 
 #include <uv.h>
-
+#include "buffer/Buffer.h"
 #include "Callbacks.h"
 
 class Codec{
 public:
+  const int kHeaderLen = 4;
   enum Status {
     INITIAL,
     HEAD,
@@ -27,6 +28,7 @@ public:
   void setMessageCallBack(MessageCallback cb) {
     cb_ = cb;
   }
+  void onMessage(const Buffer* buffer);
 private:
   void parse(ssize_t nread, const uv_buf_t*, ssize_t);
   char buf[CODEC_BUF];

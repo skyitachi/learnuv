@@ -3,7 +3,7 @@ project(learnuv)
 
 # set(CMAKE_CXX_STANDARD 11)
 
-set(SOURCE_FILES main.c)
+set(SOURCE_FILES main.c common/buffer/Buffer.cpp common/buffer/Buffer.h)
 
 add_executable(learnuv ${SOURCE_FILES})
 

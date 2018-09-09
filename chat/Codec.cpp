@@ -37,6 +37,10 @@ void Codec::parse(ssize_t nread, const uv_buf_t *b, ssize_t msg_offset) {
 
 void Codec::handleRead(ssize_t nread, const uv_buf_t* b) {
   if (nread < 0) {
+    if (nread == UV_EOF) {
+      printf("client closed\n");
+      return;
+    }
     log_error("handleRead error: ", nread);
     return;
   }
@@ -86,5 +90,11 @@ void Codec::handleRead(ssize_t nread, const uv_buf_t* b) {
       cb_(buf);
       parse(nread - (length - offset), b, length - offset);
     }
+  }
+}
+
+void Codec::onMessage(const Buffer *buffer) {
+  while(buffer->readableBytes() > kHeaderLen) {
+  
   }
 }

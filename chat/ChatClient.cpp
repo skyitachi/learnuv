@@ -35,7 +35,7 @@ static void on_write_end(uv_write_t* req, int status) {
 }
 
 void sendRawContent(const char *buf, ssize_t len, uv_stream_t* stream, int done) {
-  // TODO: uv_write_t req; 两者有何区别
+  // TODO: uv_write_t req; 两者有何区别, 公用 req 会有未定义的行为
   uv_write_t* req = (uv_write_t *)safe_malloc(sizeof(uv_write_t));
   memcpy(sendBuf, buf, len);
   uv_buf_t ub = uv_buf_init(sendBuf, len);
@@ -48,9 +48,8 @@ void sendRawContent(const char *buf, ssize_t len, uv_stream_t* stream, int done)
 
 // send message by one byte
 void test(const char *msg, uv_stream_t * stream) {
-  int contentLen = strlen(msg) + 4;
+  int contentLen = codec.encode(&buffer, msg);
   printf("contentLen %d\n", contentLen);
-  codec.encode(&buffer, msg);
 
   int step = 2, i = 0;
   for(i = 0; i < contentLen; i += step) {
@@ -85,8 +84,8 @@ static void on_read_stdin(uv_stream_t *stream, ssize_t nread, const uv_buf_t* bu
 
   }
   uv_stream_t* tcpClient = (uv_stream_t *) stream->data;
-  codec.encode(&buffer, buf->base);
-  sendRawContent(buffer.peek(), sizeof(uint32_t) + nread, tcpClient, 1);
+  int len = codec.encode(&buffer, buf->base);
+  sendRawContent(buffer.peek(), len, tcpClient, 1);
 }
 
 static void on_read_tcp(uv_stream_t *stream, ssize_t nread, const uv_buf_t* buf) {
@@ -101,7 +100,11 @@ static void on_read_tcp(uv_stream_t *stream, ssize_t nread, const uv_buf_t* buf)
   } else if (nread == 0) {
     return;
   }
-  printf("receive message from others: %s", buf->base);
+  codec.on_uv_read(nread, buf);
+}
+
+static void onStringMessage(const std::string& msg) {
+  printf("receive msg: %s\n", msg.c_str());
 }
 
 void on_connected(uv_connect_t* req, int status) {
@@ -122,7 +125,7 @@ void on_connected(uv_connect_t* req, int status) {
 }
 
 int main() {
-  printf("Stat size: %d\n", sizeof(Stat));
+  codec.setMessageCallback(onStringMessage);
   sockaddr_in addr;
   uv_ip4_addr("0.0.0.0", 11111, &addr);
   uv_tcp_t client;

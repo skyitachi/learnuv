@@ -23,6 +23,7 @@ void Codec::onMessage(Buffer *buffer) {
       cb_(msg);
     } else {
       break;
+    }
   }
 }
 

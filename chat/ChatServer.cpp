@@ -11,6 +11,7 @@
 
 std::vector<Connection *> conns;
 Codec* codec;
+Buffer buf;
 int connections = 0;
 
 void on_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t* buf) {
@@ -52,13 +53,11 @@ void on_connection(uv_stream_t* server, int status) {
 }
 
 void onStringMessageBack(const std::string& msg) {
-  // Buffer buf;
-  // int len = codec->encode(&buf, msg.c_str());
   printf("receive msg: %s\n", msg.c_str());
+  int len = codec->encode(&buf, msg.c_str());
+  printf("buffer size: %d\n", buf.readableBytes());
   for(auto conn: conns) {
-    printf("in the send\n");
-    conn->send(msg.c_str(), msg.length());
-    // conn->send(buf.peek(), len + 4);
+    conn->send(buf.peek(), len);
   }
 }
 

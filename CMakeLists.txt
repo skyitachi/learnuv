@@ -3,7 +3,7 @@ project(learnuv)
 
 # set(CMAKE_CXX_STANDARD 11)
 
-set(SOURCE_FILES main.c common/buffer/Buffer.cpp common/buffer/Buffer.h)
+set(SOURCE_FILES main.c common/buffer/Buffer.cpp common/buffer/Buffer.h common/log/LogStream.cpp)
 
 add_executable(learnuv ${SOURCE_FILES})
 
@@ -18,4 +18,6 @@ add_subdirectory(pingpong)
 add_subdirectory(simple)
 
 add_subdirectory(chat)
+
+add_subdirectory(common/log/tests)
 

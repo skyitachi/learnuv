@@ -87,11 +87,9 @@ namespace util {
   }
 
   Logger::Logger(util::Logger::SourceFile file, int line): impl_(INFO, 0, file, line) {
-    printf("in the logger constructor\n");
   }
 
   Logger::~Logger() {
-    printf("in the logger destructor\n");
     impl_.finish();
     const LogStream::Buffer& buf(stream().buffer());
     g_output(buf.data(), buf.length());

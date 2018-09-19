@@ -20,6 +20,10 @@ int main() {
 
   LOG_INFO << "new logger";
 
+  LOG_INFO << "Hello world "  << 100;
+
+  LOG_INFO << "Hello world "  << 100.1;
+
 }
 
 

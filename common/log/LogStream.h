@@ -12,6 +12,7 @@
 namespace util {
   const int kSmallBuffer = 4096;
   const int kLargeBuffer = 4000 * 1000;
+  const int kMaxNumericSize = 32;
   template<int SIZE>
   class FixedBuffer {
   public:
@@ -48,6 +49,8 @@ namespace util {
     void append(const char* data, int len) {
       buffer_.append(data, static_cast<size_t>(len));
     }
+    template <typename T>
+    void formatInteger(T);
 
     self& operator << (const char * str) {
       if (str) {
@@ -57,6 +60,9 @@ namespace util {
       }
       return *this;
     }
+
+    self& operator << (int v);
+    self& operator << (double v);
 
     const Buffer& buffer() const { return buffer_; }
   private:

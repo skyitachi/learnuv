@@ -85,4 +85,5 @@ inline Logger::LogLevel Logger::logLevel() {
 
 }
 
+
 #endif //LEARNUV_LOGGING_H

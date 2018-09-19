@@ -3,7 +3,7 @@ project(learnuv)
 
 # set(CMAKE_CXX_STANDARD 11)
 
-set(SOURCE_FILES main.c common/buffer/Buffer.cpp common/buffer/Buffer.h common/log/LogStream.cpp)
+set(SOURCE_FILES main.c common/buffer/Buffer.cpp common/buffer/Buffer.h common/log/LogStream.cpp common/time/Timestamp.cpp common/time/Timestamp.h common/time/TimeZone.cpp common/time/TimeZone.h)
 
 add_executable(learnuv ${SOURCE_FILES})
 

@@ -47,6 +47,7 @@ namespace util {
     };
 
     Logger(SourceFile file, int line);
+    Logger(SourceFile file, int line, LogLevel level);
     ~Logger();
     LogStream& stream() { return impl_.stream_; };
     static LogLevel logLevel();
@@ -82,6 +83,8 @@ inline Logger::LogLevel Logger::logLevel() {
 
 #define LOG_INFO if (util::Logger::logLevel() <= util::Logger::INFO) \
   util::Logger(__FILE__, __LINE__).stream()
+  
+#define LOG_ERROR Logger(__FILE__, __LINE__, Logger::ERROR).stream()
 
 }
 

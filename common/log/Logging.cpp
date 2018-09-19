@@ -88,6 +88,7 @@ namespace util {
 
   Logger::Logger(util::Logger::SourceFile file, int line): impl_(INFO, 0, file, line) {
   }
+  Logger::Logger(util::Logger::SourceFile file, int line, LogLevel level): impl_(level, 0, file, line) {}
 
   Logger::~Logger() {
     impl_.finish();

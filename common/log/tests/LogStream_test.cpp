@@ -23,6 +23,8 @@ int main() {
   LOG_INFO << "Hello world "  << 100;
 
   LOG_INFO << "Hello world "  << 100.1;
+  
+  LOG_ERROR << "Error Log test";
 
 }
 

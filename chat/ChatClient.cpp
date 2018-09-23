@@ -5,6 +5,7 @@
 #include "util.h"
 #include "Codec.h"
 #include "buffer/Buffer.h"
+#include "log/Logging.h"
 
 Codec codec;
 Buffer buffer;
@@ -89,13 +90,13 @@ static void on_read_stdin(uv_stream_t *stream, ssize_t nread, const uv_buf_t* bu
 }
 
 static void on_read_tcp(uv_stream_t *stream, ssize_t nread, const uv_buf_t* buf) {
-  printf("in the read_tcp\n");
+  LOG_INFO << "in the read_tcp";
   if (nread < 0) {
     if (nread == UV_EOF) {
       uv_close((uv_handle_t *)stdinPipe, NULL);
       return;
     }
-    log_error("read_tcp error", nread);
+    LOG_ERROR << "read_tcp error";
     return;
   } else if (nread == 0) {
     return;
@@ -112,14 +113,14 @@ void on_connected(uv_connect_t* req, int status) {
     log_error("connect error: ", status);
     return;
   }
-  printf("connected to server\n");
+  LOG_INFO << "connected to server";
   stdinPipe = (uv_pipe_t *)safe_malloc(sizeof(uv_pipe_t));
   uv_pipe_init(uv_default_loop(), stdinPipe, 0);
   check_uv(uv_pipe_open(stdinPipe, 0));
 
   stdinPipe->data = req->handle;
   check_uv(uv_read_start((uv_stream_t *)stdinPipe, common_alloc_buffer, on_read_stdin));
-  printf("after uv_read_start\n");
+  LOG_INFO << "after uv_read_start";
 
   check_uv(uv_read_start(req->handle, common_alloc_buffer, on_read_tcp));
 }

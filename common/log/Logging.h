@@ -7,7 +7,7 @@
 
 #include "LogStream.h"
 #include <cstring>
-#include "Timestamp.h"
+#include "time/Timestamp.h"
 
 namespace util {
   class Logger {
@@ -86,7 +86,7 @@ inline Logger::LogLevel Logger::logLevel() {
 #define LOG_INFO if (util::Logger::logLevel() <= util::Logger::INFO) \
   util::Logger(__FILE__, __LINE__).stream()
   
-#define LOG_ERROR Logger(__FILE__, __LINE__, Logger::ERROR).stream()
+#define LOG_ERROR util::Logger(__FILE__, __LINE__, util::Logger::ERROR).stream()
 
 }
 

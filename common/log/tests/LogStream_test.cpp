@@ -6,6 +6,7 @@
 #include <cstring>
 #include "Logging.h"
 #include "LogStream.h"
+#include "Timestamp.h"
 
 using namespace util;
 

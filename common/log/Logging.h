@@ -7,6 +7,7 @@
 
 #include "LogStream.h"
 #include <cstring>
+#include "Timestamp.h"
 
 namespace util {
   class Logger {
@@ -64,13 +65,14 @@ namespace util {
     public:
       typedef Logger::LogLevel LogLevel;
       Impl(LogLevel level, int old_errno, const SourceFile& file, int line);
-      void formatTime();
+      std::string formatTime();
       void finish();
 
       LogStream stream_;
       LogLevel level_;
       int line_;
       SourceFile basename_;
+      Timestamp time_;
     };
     Impl impl_;
   };

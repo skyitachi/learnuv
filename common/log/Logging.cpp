@@ -3,12 +3,9 @@
 //
 
 #include "Logging.h"
-
 #include <cstdio>
 #include <cstring>
 #include <sstream>
-
-
 
 namespace util {
 
@@ -77,13 +74,27 @@ namespace util {
     : stream_(),
       level_(level),
       line_(line),
-      basename_(file)
+      basename_(file),
+      time_(Timestamp::now())
   {
+    stream_ << formatTime() << " ";
     stream_ << T(LogLevelName[level], 6);
   }
 
   void Logger::Impl::finish() {
-    stream_ << " - " << basename_ << ":" << "prefix" << "\n";
+    stream_ << " - " << basename_ << ":" << line_ << "\n";
+  }
+
+  std::string Logger::Impl::formatTime() {
+    int64_t us = time_.microSecondsSinceEpoch();
+    int64_t seconds = us / Timestamp::kMircoSecondsPerSecond;
+    time_t ct = seconds;
+    struct tm *info = localtime(&ct);
+    char formatted[34];
+    size_t l = strftime(formatted, 20, "%Y-%m-%d %H:%M:%S", info);
+    formatted[l] = 0;
+    sprintf(formatted, "%s,%06lld", formatted, us % Timestamp::kMircoSecondsPerSecond);
+    return std::string(formatted);
   }
 
   Logger::Logger(util::Logger::SourceFile file, int line): impl_(INFO, 0, file, line) {

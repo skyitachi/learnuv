@@ -61,6 +61,10 @@ namespace util {
       return *this;
     }
 
+    self & operator << (std::string str) {
+      return *this << str.c_str();
+    }
+
     self& operator << (int v);
     self& operator << (double v);
 

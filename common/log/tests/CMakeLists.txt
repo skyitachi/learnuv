@@ -1,6 +1,8 @@
 include_directories(../)
+include_directories(../../time)
+
 set(CMAKE_CXX_STANDARD 11)
-set(SRC ../LogStream.cpp ../Logging.cpp)
+set(SRC ../LogStream.cpp ../Logging.cpp ../../time/Timestamp.cpp)
 
 add_executable(logstream_test ${SRC} LogStream_test.cpp)
 

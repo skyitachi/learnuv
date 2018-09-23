@@ -12,17 +12,18 @@
 namespace util {
   
   class Timestamp {
-    
+
+  public:
     static const int kMircoSecondsPerSecond = 1000 * 1000;
-    
+
     Timestamp(int64_t microSecondsSinceEpoch) : microSecondsSinceEpoch_(microSecondsSinceEpoch) {}
     
     Timestamp() : microSecondsSinceEpoch_(0) {}
-    
-    std::string toString() const {
-    
+    int64_t microSecondsSinceEpoch() {
+      return microSecondsSinceEpoch_;
     }
-    
+    std::string toString() const;
+
     static Timestamp now();
   
   

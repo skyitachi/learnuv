@@ -4,9 +4,9 @@
 
 #include <iostream>
 #include <cstring>
-#include "Logging.h"
-#include "LogStream.h"
-#include "Timestamp.h"
+#include "log/Logging.h"
+#include "log/LogStream.h"
+#include "time/Timestamp.h"
 
 using namespace util;
 

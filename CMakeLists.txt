@@ -21,3 +21,4 @@ add_subdirectory(chat)
 
 add_subdirectory(common/log/tests)
 
+add_subdirectory(codec_test)

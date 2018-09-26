@@ -36,7 +36,6 @@ static void on_write_end(uv_write_t* req, int status) {
 }
 
 void sendRawContent(const char *buf, ssize_t len, uv_stream_t* stream, int done) {
-  // TODO: uv_write_t req; 两者有何区别, 公用 req 会有未定义的行为
   uv_write_t* req = (uv_write_t *)safe_malloc(sizeof(uv_write_t));
   memcpy(sendBuf, buf, len);
   uv_buf_t ub = uv_buf_init(sendBuf, len);

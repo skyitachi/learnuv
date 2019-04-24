@@ -9,8 +9,11 @@ add_executable(read ${COMMON_SRC} system_read.cpp)
 
 add_executable(read_uv_sync ${COMMON_SRC} libuv_readfile_sync.cpp)
 
+add_executable(benchmark_pread benchmark_pread.cpp)
+
 target_link_libraries(read_uv uv)
 
 target_link_libraries(read uv)
 
 target_link_libraries(read_uv_sync uv)
+

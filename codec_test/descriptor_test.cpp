@@ -42,10 +42,10 @@ int main() {
   testDescriptor<learnuv::Query>();
   testDescriptor<learnuv::Answer>();
 
-  google::protobuf::Message * newQuery = createMessage("learnuv.Query");
+  google::protobuf::Message* newQuery = createMessage("learnuv.Query");
   assert(newQuery != NULL);
   assert(typeid(*newQuery) == typeid(learnuv::Query::default_instance()));
 
-  delete newQuery;
   cout << "createMessage(\"learnuv::Query\") = " << newQuery << endl;
+  delete newQuery;
 }

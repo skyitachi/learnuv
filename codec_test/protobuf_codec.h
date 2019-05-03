@@ -12,6 +12,7 @@
 #include <arpa/inet.h>
 #include <string>
 #include <stdint.h>
+#include <sys/_endian.h>
 
 const int kHeaderLen = sizeof(int32_t);
 
@@ -20,16 +21,16 @@ inline std::string encode(const google::protobuf::Message &message) {
   result.resize(kHeaderLen);
   const std::string& typeName = message.GetTypeName();
   int32_t nameLen = static_cast<int32_t>(typeName.size() + 1);
-  int32_t be32 = ::htonl(nameLen);
+  int32_t be32 = htonl(nameLen);
   result.append(reinterpret_cast<char *>(&be32), sizeof(be32));
   result.append(typeName.c_str(), nameLen);
   bool succeed = message.AppendToString(&result);
   if (succeed) {
     const char *begin = result.c_str() + kHeaderLen;
     int32_t checkSum = adler32(1, reinterpret_cast<const Bytef *>(begin), result.size() - kHeaderLen);
-    int32_t be32 = ::htonl(checkSum);
+    int32_t be32 = htonl(checkSum);
     result.append(reinterpret_cast<char *>(&be32), sizeof(be32));
-    int32_t len = ::htonl(result.size() - kHeaderLen);
+    int32_t len = htonl(result.size() - kHeaderLen);
     std::copy(reinterpret_cast<char *>(&len),
       reinterpret_cast<char *>(&len) + sizeof(len), result.begin()) ;
   } else {

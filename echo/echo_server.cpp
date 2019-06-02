@@ -1,5 +1,6 @@
 #include <uv.h>
 #include <cstdlib>
+#include <stdio.h>
 
 uv_loop_t *loop;
 
@@ -49,6 +50,23 @@ void on_new_connection(uv_stream_t *server, int status) {
     uv_ip4_name(&clientAddr, addr, sizeof(addr));
     printf("receive connections from %s:%d\n", addr, ntohs(clientAddr.sin_port));
 
+
+    uv_shutdown(new uv_shutdown_t, (uv_stream_t*) client, [](uv_shutdown_t* req, int status) {
+      if (status) {
+        printf("shutdown error %s\n", uv_strerror(status));
+        return;
+      }
+      printf("shutdown the socket\n");
+      delete req;
+
+    });
+    /*
+    uv_close((uv_handle_t*)client, [](uv_handle_t* handle){
+      printf("close client stream\n");
+      free(handle);
+    });
+    */
+    /*
     int r = uv_read_start((uv_stream_t *)client, alloc_buffer, on_data);
     if (r < 0) {
       fprintf(stderr, "read client data start error: %s\n", uv_strerror(r));
@@ -56,6 +74,7 @@ void on_new_connection(uv_stream_t *server, int status) {
     } else {
       printf("read start successfully\n");
     }
+    */
   }
 }
 

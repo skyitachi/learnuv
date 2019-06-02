@@ -1,4 +1,5 @@
 #include "util.h"
+#include <stdio.h>
 
 uv_loop_t* loop;
 uv_pipe_t* pipe_stdin;
@@ -7,9 +8,14 @@ uv_pipe_t* pipe_stdout;
 // Note: just print to the server
 void on_read_connection(uv_stream_t *stream, ssize_t nread, const uv_buf_t* buf) {
   if (nread < 0) {
+    printf("read error :%s\n ", uv_strerror(nread));
     uv_close((uv_handle_t *) stream, NULL);
     uv_close((uv_handle_t *) stream->data, NULL); // stdout
     uv_close((uv_handle_t *) pipe_stdin, NULL);
+    return;
+  }
+  if (nread == 0) {
+    printf("connect closed by other side\n");
     return;
   }
   uv_stream_t *stream_stdout = (uv_stream_t *)stream->data;

@@ -8,6 +8,7 @@
 #include <string.h>
 #include <cstdlib>
 #include <assert.h>
+#include <stdio.h>
 
 #define check_uv(status) \
   do { \

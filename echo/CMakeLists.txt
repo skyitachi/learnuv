@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.7)
 include_directories(../common)
 set(COMMON_SRC ../common/util.cpp)
+set(CMAKE_CXX_STANDARD 11)
+
 add_executable(echo_client ${COMMON_SRC} echo_client.cpp)
 
 add_executable(echo_server echo_server.cpp)

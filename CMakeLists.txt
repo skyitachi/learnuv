@@ -22,3 +22,5 @@ add_subdirectory(chat)
 add_subdirectory(common/log/tests)
 
 add_subdirectory(codec_test)
+
+add_subdirectory(multi_thread_tcp_server_exp)

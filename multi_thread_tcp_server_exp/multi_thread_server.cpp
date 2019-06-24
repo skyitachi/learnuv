@@ -53,6 +53,7 @@ void on_new_connection(uv_stream_t* server, int status) {
           fprintf(stdout, "child thread read error %s\n", uv_strerror(nread));
           return;
         } else {
+          std::cout << "curren thread " << std::this_thread::get_id() << std::endl;
           fprintf(stdout, "receive data %s\n", buf->base);
           uv_write_t* req = (uv_write_t*)malloc(sizeof(uv_write_t));
           uv_write(req, stream, buf, 1, [](uv_write_t* req, int status) {
@@ -72,6 +73,7 @@ void on_new_connection(uv_stream_t* server, int status) {
 
 int main() {
   sockaddr_in sockaddrIn;
+  std::cout << "main thread " << std::this_thread::get_id() << std::endl;
   uv_ip4_addr("127.0.0.1", 3000, &sockaddrIn);
   uv_tcp_t *server = (uv_tcp_t* )malloc(sizeof(uv_tcp_t));
   uv_tcp_init(uv_default_loop(), server);
